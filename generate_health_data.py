@@ -137,12 +137,94 @@ class HealthDataGenerator:
         
         if profile_type not in self.profile_configs:
             raise ValueError(f"Unknown profile type: {profile_type}. Available profiles: {list(self.profile_configs.keys())}")
+            
+        # Initialize variation parameters
+        self.sleep_time_variation = 0
+        self.training_time_variation = 0
+        self.skip_training_probability = 0
+        self.poor_sleep_probability = 0
+        self.mindfulness_variation = 1.0
+
+    def add_variations(self, sleep_time_variation=0, training_time_variation=0, 
+                      skip_training_probability=0, poor_sleep_probability=0, 
+                      mindfulness_variation=1.0):
+        """Add variations to the profile's patterns"""
+        self.sleep_time_variation = sleep_time_variation
+        self.training_time_variation = training_time_variation
+        self.skip_training_probability = skip_training_probability
+        self.poor_sleep_probability = poor_sleep_probability
+        self.mindfulness_variation = mindfulness_variation
+
+    def get_varied_training_times(self):
+        """Get training times with variations applied"""
+        config = self.profile_configs[self.profile_type]
+        varied_times = []
+        
+        for start, end in config["training_times"]:
+            # Apply time variation
+            new_start = (start + self.training_time_variation) % 24
+            new_end = (end + self.training_time_variation) % 24
+            
+            # Handle day wraparound
+            if new_start > new_end:
+                new_end = new_start + 1
+                
+            varied_times.append((new_start, new_end))
+            
+        return varied_times
+
+    def is_training_hour(self, hour):
+        """Determine if it's a training hour, considering variations and skip probability"""
+        if random.random() < self.skip_training_probability:
+            return False
+            
+        varied_times = self.get_varied_training_times()
+        return any(start <= hour < end for start, end in varied_times)
+
+    def is_sleep_hour(self, hour):
+        """Determine if it's a sleep hour, considering variations"""
+        base_sleep_start = 22
+        base_sleep_end = 4
+        
+        # Apply sleep time variation
+        sleep_start = (base_sleep_start + self.sleep_time_variation) % 24
+        sleep_end = (base_sleep_end + self.sleep_time_variation) % 24
+        
+        # Handle day wraparound
+        if sleep_start > sleep_end:
+            return hour >= sleep_start or hour < sleep_end
+        else:
+            return sleep_start <= hour < sleep_end
+
+    def get_sleep_metrics(self, hour):
+        """Get sleep metrics with variations for poor sleep"""
+        config = self.profile_configs[self.profile_type]
+        
+        if not self.is_sleep_hour(hour):
+            return 0, 0, 0, 0
+            
+        if hour == 2:  # Use a specific hour for sleep metrics
+            sleep_duration = config["sleep_duration"][0]
+            
+            # Apply poor sleep probability
+            if random.random() < self.poor_sleep_probability:
+                sleep_duration *= random.uniform(0.7, 0.9)  # Reduce sleep duration
+                sleep_rem = random.randint(*config["rem_sleep"]) * 0.8  # Reduce REM sleep
+                sleep_deep = random.randint(*config["deep_sleep"]) * 0.7  # Reduce deep sleep
+            else:
+                sleep_rem = random.randint(*config["rem_sleep"])
+                sleep_deep = random.randint(*config["deep_sleep"])
+                
+            sleep_core = 100 - sleep_rem - sleep_deep
+            return sleep_duration, sleep_rem, sleep_core, sleep_deep
+            
+        return 0, 0, 0, 0
 
     def generate_hourly_data(self, date, hour):
         try:
             config = self.profile_configs[self.profile_type]
-            is_training_hour = any(start <= hour < end for start, end in config["training_times"])
-            is_sleep_hour = 22 <= hour or hour <= 4
+            is_training_hour = self.is_training_hour(hour)
+            is_sleep_hour = self.is_sleep_hour(hour)
             
             # Base metrics
             if is_training_hour:
@@ -171,16 +253,11 @@ class HealthDataGenerator:
                 pace = 0
             
             # Sleep metrics
-            if is_sleep_hour:
-                sleep_duration = config["sleep_duration"][0] if hour == 2 else 0
-                sleep_rem = random.randint(*config["rem_sleep"]) if hour == 2 else 0
-                sleep_core = 100 - sleep_rem - random.randint(*config["deep_sleep"]) if hour == 2 else 0
-                sleep_deep = random.randint(*config["deep_sleep"]) if hour == 2 else 0
-            else:
-                sleep_duration = sleep_rem = sleep_core = sleep_deep = 0
+            sleep_duration, sleep_rem, sleep_core, sleep_deep = self.get_sleep_metrics(hour)
                 
-            # Mindfulness
-            mindfulness = random.randint(*config["mindfulness_minutes"]) if hour in [7, 17, 20] else 0
+            # Mindfulness with variation
+            base_mindfulness = random.randint(*config["mindfulness_minutes"]) if hour in [7, 17, 20] else 0
+            mindfulness = int(base_mindfulness * self.mindfulness_variation)
             
             return {
                 "Date": date.strftime("%d-%b-%Y"),
