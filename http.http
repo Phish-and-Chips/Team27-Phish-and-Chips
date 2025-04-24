@@ -1,0 +1,11 @@
+POST http://young-adult-support-api.azurewebsites.net/chat   HTTP/1.1
+content-type: application/json
+
+{
+  "message": "What bankingn products can i get?",
+  "agent_type": "router",
+  "history": []
+}
+
+
+# POST https://example.com/comments HTTP/1.1

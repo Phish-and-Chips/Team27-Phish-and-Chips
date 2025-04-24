@@ -1,64 +1,79 @@
-# RebootLondonHackathon
+# Young Adult Support Agent API
 
+A FastAPI application that uses Azure OpenAI to power specialized AI agents for financial advice, health support, and banking assistance.
 
-This is the repository for the Reboot London Hackathon.
+## Local Development
 
-## Fork this Repository
+1. Clone the repository
+2. Create a `.env` file with the following variables:
+   ```
+   AZURE_OPENAI_KEY=your_azure_openai_key
+   AZURE_OPENAI_ENDPOINT=your_azure_openai_endpoint
+   DEPLOYMENT_NAME=your_deployment_name
+   ```
+3. Install dependencies:
+   ```
+   pip install -r requirements.txt
+   ```
+4. Run the application:
+   ```
+   uvicorn agen:app --reload
+   ```
 
-To fork this repository, select the `Fork` dropdown menu next to the title:
+## Azure Deployment Options
 
-![](./images/fork.png)
+### Option 1: Azure App Service
 
-Then select `+ Create New Fork`:
+Deploy using the provided script:
 
-![](./images/create-new-fork.png)
+```bash
+# Make the script executable
+chmod +x azure-deploy.sh
 
-For the `Repository name`, please make sure you enter your team's name so that we can keep track of the different repositories.
+# Set your Azure OpenAI variables
+export AZURE_OPENAI_KEY=your_azure_openai_key
+export AZURE_OPENAI_ENDPOINT=your_azure_openai_endpoint
+export DEPLOYMENT_NAME=your_deployment_name
 
-If your team is building multiple components and requires multiple repositories, fork this repository and enter the team name followed by the name of the component.
+# Run the deployment script
+./azure-deploy.sh
+```
 
-For example, if you have a `frontend` and `backend` application, the first fork can be called `TeamName-frontend` and the second fork can be called `TeamName-backend`.
+### Option 2: Azure Container App
 
-> [!NOTE]
-> If you're only building a single component, you can leave the `Repository name` as `TeamName`.
+Deploy as a containerized application:
 
-Once you've entered the name, select `Create fork`:
+```bash
+# Make the script executable
+chmod +x azure-container-deploy.sh
 
-![](./images/create-fork.png)
+# Set your Azure OpenAI variables
+export AZURE_OPENAI_KEY=your_azure_openai_key
+export AZURE_OPENAI_ENDPOINT=your_azure_openai_endpoint
+export DEPLOYMENT_NAME=your_deployment_name
 
-### Add Collaborators
+# Run the container deployment script
+./azure-container-deploy.sh
+```
 
-Now that you've created your own fork, if another member within your team wants to contribute to the code, you would need to add them as a collaborator.
+## API Endpoints
 
-To do so, navigate to the repository containing your fork and click on `Settings`:
+- `GET /`: Health check endpoint
+- `POST /chat`: Main endpoint for chatting with specialized agents
 
-![](./images/settings.png)
+### Chat Request Format
+```json
+{
+  "message": "How can I manage my student loans?",
+  "agent_type": "router",
+  "history": []
+}
+```
 
-Then select the `Collaborators` option in the navigation menu on the left:
-
-![](./images/collaborators.png)
-
-Select `Add people`:
-
-![](./images/add-people.png)
-
-And search for the `username`, `full name`, or `email` of the member you want to add to the repository.
-
-Then they can clone your repository and contribute code to your fork.
-
-> [!NOTE]
-> Please make sure to add them to your forked version of the repository. You won't be able to add them here directly.
->
-### How to sign in to GitHub Copilot
-
-IT@LBG request will need to have been raised and completed before you can do the below:
- 
-Once you've been given a licence you'll be sent your username in an email (to your LBG email address).
-
-When logging in use the username you've been given (example: charlotte-Boults_lbgghcp) this will remove the password field and redirect you to the Microsoft sign in page.
-
-On the Microsoft sign in page use your LBG global credentials (example:Charlotte.boults@lloydsbanking.com) and password you use to log into your work device.
-
-Once authentication is complete you should be re-directed to GitHub Copilot home page.
-
-Now you're ready to start. Happy coding!
+### Chat Response Format
+```json
+{
+  "response": "To manage your student loans effectively...",
+  "agent_type": "financial"
+}
+``` 
